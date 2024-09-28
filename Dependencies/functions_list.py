@@ -12,16 +12,25 @@ def create_poly(qc, n: int):
         gate = entry[0]
         elements = entry[1]
 
-        if gate == 'h':
-            wire_array[elements[0]].append(t)
+    if gate == 'h':
+            wire_array[elements[0]].append(max_new_var)
             #print(wire_array[elements[0]])
-            t+=1
-            terms.append([wire_array[elements[0]][-1],wire_array[elements[0]][-2]])
-        else:
-            terms.append([wire_array[j][-1] for j in elements])
+            max_new_var+=1
+            terms.append([4,[wire_array[elements[0]][-1],wire_array[elements[0]][-2]]])
+
+
+        elif gate in ['z','cz','ccz']:
+            terms.append([4,[wire_array[j][-1] for j in elements]])
+
+        elif gate == 's':
+            terms.append([2,[wire_array[j][-1] for j in elements]])
+
+        elif gate == 't':
+            terms.append([1,[wire_array[j][-1] for j in elements]])
+
 
     for term in terms:
-        term.sort()
+        term[-1].sort()
     return terms, wire_array
 
 
@@ -32,7 +41,8 @@ def eval_f(terms,x): # x is a binary array
         v = bool(1)
         for j in term:
             v &= x[j]
-        val_out ^= v
+        val_out += (weight*int(v))%8
+        val_out %=8
     return val_out
 
 def truthtable(terms, n, t, initial_state, ivs, np):
@@ -64,11 +74,20 @@ def truthtable(terms, n, t, initial_state, ivs, np):
 def statevector_(ttb, n, t, ovs, np):
     group_size = 2**(t-n) # == size of ttb 
     # len(ovs) == n
-    s = np.zeros(2**n,dtype=int) 
-    for k in range(group_size):
-        chosenbits = "".join([(bin(k)[2:].zfill(t))[j] for j in ovs])
+    s = np.zeros(2**len(ovs),dtype=complex)
+    s_ldic = dict()
+   for k in range(starting_index,starting_index+group_size): # Going through each value
+        t_val = ttb[k,0]
+        chosenbits = "".join([(bin(k)[2:].zfill((max_new_var)))[j] for j in ovs])
         chosen_int = int(chosenbits,2)
-        s[chosen_int] += (1-2*ttb[k])
+
+        try: s_ldic[chosen_int][t_val]+=1
+        except KeyError:    
+            s_ldic[chosen_int] = np.array([0,0,0,0,0,0,0,0])
+            s_ldic[chosen_int][t_val]+=1
+
+    for k in s_ldic:
+      s[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) )
     stvector = s / (2**.5)**(t-n)
     return stvector
 
