@@ -29,7 +29,7 @@ def create_poly(qc, n: int):
             terms.append([1,[wire_array[j][-1] for j in elements]])
         
         elif gate == 'sdg':
-            terms.append([3,[wire_array[j][-1] for j in elements]])
+            terms.append([6,[wire_array[j][-1] for j in elements]])
 
         elif gate == 'tdg':
             terms.append([7,[wire_array[j][-1] for j in elements]])
