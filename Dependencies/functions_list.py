@@ -6,7 +6,8 @@ def create_poly(qc, n: int):
 
     wire_array = [[i] for i in range(n)]
     t = n
-    terms = []
+    terms = [] 
+    #Each term now also holds a weight, alongside the index of each variable in our polynomial. In form: [weight,[*vars]]
 
     for entry in instructions:
         gate = entry[0]
@@ -16,23 +17,23 @@ def create_poly(qc, n: int):
             wire_array[elements[0]].append(max_new_var)
             #print(wire_array[elements[0]])
             max_new_var+=1
-            terms.append([4,[wire_array[elements[0]][-1],wire_array[elements[0]][-2]]])
+            terms.append([4,[wire_array[elements[0]][-1],wire_array[elements[0]][-2]]]) #Weight for H = 4
 
 
         elif gate in ['z','cz','ccz']:
-            terms.append([4,[wire_array[j][-1] for j in elements]])
+            terms.append([4,[wire_array[j][-1] for j in elements]]) #Weight for Z, CZ, CCZ = 4; only additional thing to note is that CZ and CCZ are multi-qubit gates, so they will give higher degree terms
 
         elif gate == 's':
-            terms.append([2,[wire_array[j][-1] for j in elements]])
+            terms.append([2,[wire_array[j][-1] for j in elements]]) #Weight for S = 4
 
         elif gate == 't':
-            terms.append([1,[wire_array[j][-1] for j in elements]])
+            terms.append([1,[wire_array[j][-1] for j in elements]]) #Weight for T = 4
         
         elif gate == 'sdg':
-            terms.append([6,[wire_array[j][-1] for j in elements]])
+            terms.append([6,[wire_array[j][-1] for j in elements]]) #Weight for Sdg = 6 = (-2) mod 8
 
         elif gate == 'tdg':
-            terms.append([7,[wire_array[j][-1] for j in elements]])
+            terms.append([7,[wire_array[j][-1] for j in elements]]) #Weight for Tdg = 7 = (-1) mod 8
 
 
     for term in terms:
@@ -42,13 +43,12 @@ def create_poly(qc, n: int):
 
 # function to evaluate polynomial equation
 def eval_f(terms,x): # x is a binary array 
-    val_out = bool(0)
+    val_out = 0
     for term in terms:
-        v = bool(1)
+        v = bool(1) #The inputs remain boolean. Hence, the products of the variables will remain integers. 
         for j in term:
-            v &= x[j]
-        val_out += (weight*int(v))%8
-        val_out %=8
+            v &= x[j] 
+        val_out = (val_out + weight*int(v))%8 #Ensuring all operations are done modulo 8, as integer operations. 
     return val_out
 
 def truthtable(terms, n, t, initial_state, ivs, np):
@@ -93,8 +93,8 @@ def statevector_(ttb, n, t, ovs, np):
             s_ldic[chosen_int][t_val]+=1
 
     for k in s_ldic:
-      s[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) )
-    stvector = s / (2**.5)**(t-n)
+      s[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) ) #Hardcoded the computation of FFT[1] of the array
+    stvector = s / (2**.5)**(t-n) #Normalization
     return stvector
 
 
