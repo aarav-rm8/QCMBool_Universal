@@ -82,9 +82,9 @@ def statevector_(ttb, n, t, ovs, np):
     # len(ovs) == n
     s = np.zeros(2**len(ovs),dtype=complex)
     s_ldic = dict()
-   for k in range(0,group_size): # Going through each value
+    for k in range(0,group_size): # Going through each value
         t_val = ttb[k,0]
-        chosenbits = "".join([(bin(k)[2:].zfill((max_new_var)))[j] for j in ovs])
+        chosenbits = "".join([(bin(k)[2:].zfill((t))[j] for j in ovs])
         chosen_int = int(chosenbits,2)
 
         try: s_ldic[chosen_int][t_val]+=1
