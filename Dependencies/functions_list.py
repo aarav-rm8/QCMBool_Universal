@@ -83,17 +83,18 @@ def statevector_(ttb, n, t, ovs, np):
     s = np.zeros(2**len(ovs),dtype=complex)
     s_ldic = dict()
     for k in range(0,group_size): # Going through each value
-        t_val = ttb[k,0]
-        chosenbits = "".join([(bin(k)[2:].zfill((t))[j] for j in ovs])
-        chosen_int = int(chosenbits,2)
+        t_val = ttb[k,0] #Check truth value for each element
+        chosenbits = "".join([ ( bin(k)[2:].zfill((t)) )[j] for j in ovs ]) #Choosing the variables which are corresponing to the output. 
+        chosen_int = int(chosenbits,2) #Integer value corresponding to chosen variables.  
 
-        try: s_ldic[chosen_int][t_val]+=1
-        except KeyError:    
+        try: s_ldic[chosen_int][t_val]+=1 #If array has been created already, just update it
+        except KeyError: #If the chosen variables have not been chosen before, define a new element corresponding to that combo - and then update the array
             s_ldic[chosen_int] = np.array([0,0,0,0,0,0,0,0])
             s_ldic[chosen_int][t_val]+=1
 
     for k in s_ldic:
-      s[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) ) #Hardcoded the computation of FFT[1] of the array
+        s_ldic[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) ) #Hardcoded the computation of FFT[1] of the array
+        s[k] = s_ldic[k] 
     stvector = s / (2**.5)**(t-n) #Normalization
     return stvector
 
