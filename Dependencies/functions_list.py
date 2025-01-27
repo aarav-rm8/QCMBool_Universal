@@ -1,13 +1,25 @@
+## Defining some global variables
+global omega
+root_i = np.sqrt(1j)
+omega = [1,root_i,1j,1j*root_i,-1,-root_i,-1j,-1j*root_i]
+
+#A function to calculate n'th power of π/4 (where n is value from 0 to 7)
+def expfunc(arr):
+    b = np.array([omega[i] for i in arr])
+    return b
+
 ### Creating the Polynomial array of Circuit
-def create_poly(qc, n: int):    
+def create_poly(qc, n: int):
     instructions = [(instruction.operation.name,
-                    [qc.find_bit(q).index for q in instruction.qubits]) 
+                    [qc.find_bit(q).index for q in instruction.qubits],
+                     instruction.operation.params)
                     for index, instruction in enumerate(qc.data)]
 
     wire_array = [[i] for i in range(n)]
     # t = n
     max_new_var = n # or the last variable name
-    terms = [] 
+    terms = []
+    phases = []
     #Each term now also holds a weight, alongside the index of each variable in our polynomial. In form: [weight,[*vars]]
 
     for entry in instructions:
@@ -27,35 +39,40 @@ def create_poly(qc, n: int):
 
         elif gate == 't':
             terms.append([1,[wire_array[j][-1] for j in elements]]) #Weight for T = 1
-        
+
         elif gate == 'sdg':
             terms.append([6,[wire_array[j][-1] for j in elements]]) #Weight for Sdg = 6 = (-2) mod 8
 
         elif gate == 'tdg':
             terms.append([7,[wire_array[j][-1] for j in elements]]) #Weight for Tdg = 7 = (-1) mod 8
 
+        elif gate in ['rz','crz']:
+            theta = (entry[2])[0]
+            phases.append([theta,[wire_array[j][-1] for j in elements]])
 
     for term in terms:
         term[-1].sort()
-    return terms, wire_array, max_new_var
+    return terms, wire_array, max_new_var, phases
 
 
 # function to evaluate polynomial equation
-def eval_f(terms,x): # x is a binary array 
+def eval_f(terms,x): # x is a binary array
     val_out = 0
     for term in terms:
         weight = term[0]
         indices = term[1]
-        v = bool(1) #The inputs remain boolean. Hence, the products of the variables will remain integers. 
+        v = bool(1) #The inputs remain boolean. Hence, the products of the variables will remain integers.
         for j in indices:
-            v &= x[j] 
-        val_out = int(val_out + weight*int(v))%8 #Ensuring all operations are done modulo 8, as integer operations. 
+            v &= x[j]
+        val_out = int(val_out + weight*int(v))%8 #Ensuring all operations are done modulo 8, as integer operations.
     return val_out
+
 
 def truthtable(terms, n, t, initial_state, ivs, np):
     # x_range = number of x values possible, given initial_state
-    x_range = 2**(t-n) 
+    x_range = 2**(t-n)
     tt = np.empty(x_range,dtype=np.uint8)
+    #pt = np.empty(x_range,dtype=np.float128)
     # x = x0 x1 x2 x3 x4 ...
     x = np.empty(t, dtype='bool')
     # y = all variables - input variables == indexes of x2 x3 x4
@@ -76,30 +93,79 @@ def truthtable(terms, n, t, initial_state, ivs, np):
         tt[i] = eval_f(terms,x)
     return tt
 
+#Note that we only have to do phase table calculations - to calculate phase factors:
+def phasetable(phases, n, t, initial_state, ivs, np):
+    x_range = 2**(t-n) # x_range = number of x values possible, given initial_state
+    pt = np.ones(x_range,dtype=complex) #This array will store the phase factors (Exp_itheta)
 
-def statevector_(ttb, n, t, ovs, np, starting_index=0):
-    group_size = 2**(t-n) # == size of ttb 
-    # len(ovs) == n
-    s = np.zeros(2**len(ovs),dtype=complex)
-    s_ldic = dict()
-    for k in range(0,group_size): # Going through each value
-        t_val = ttb[k] #Check truth value for each element
-        chosenbits = "".join([ ( bin(k)[2:].zfill((t)) )[j] for j in ovs ]) #Choosing the variables which are corresponing to the output. 
-        chosen_int = int(chosenbits,2) #Integer value corresponding to chosen variables.  
+    for term in phases:
+        theta = term[0]
+        indices = term[1]
+        indices.sort()
 
-        #try: s_ldic[chosen_int][t_val]+=1 #If array has been created already, just update it
-        #except KeyError: #If the chosen variables have not been chosen before, define a new element corresponding to that combo - and then update the array
-        try: s_ldic[chosen_int][t_val]+=1 #If array has been created already, just update it
-        except KeyError: #If the chosen variables have not been chosen before, define a new element corresponding to that combo - and then update the array
-            s_ldic[chosen_int] = np.array([0,0,0,0,0,0,0,0])
-            s_ldic[chosen_int][t_val]+=1
+        if len(indices)==1: #Case for RZ gate
 
-    for k in s_ldic:
-        s_ldic[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) ) #Hardcoded the computation of FFT[1] of the array
-        s[k] = s_ldic[k] 
-        #s_ldic[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) ) #Hardcoded the computation of FFT[1] of the array
-        #s[k] = s_ldic[k] 
+            ind = indices[0]
+            if ind < n: #This indicates that the concerned variable is already initialised.
+
+                if initial_state[ind] == 1:
+
+                    pt *= np.exp(1j*theta) #a universal global phase is added, which ultimately does not make a difference but is included for the sake of completeness
+            else: #when concerned variable is not initialised and is an intermediate/final variable
+                val = np.exp(1j*theta)
+
+                r = t-n
+                block_size = 2**(t-ind-1)
+                repeat_period = 2**(t-ind)
+                for start in range(block_size, x_range, repeat_period):
+                    for k in range(block_size):
+                        pt[start + k] *= val
+
+        else: #Case for CRZ gate
+            ind1 = indices[0]
+            ind2 = indices[1]
+
+            if ind1 < n: # if atleast one of the variables is already pre-defined
+                if initial_state[ind1] == 1: #this means that we only have to care about ind2 if ind1 index initialised to 1
+                    if ind2 < n: # case where ind1 and ind2 are both initialised
+                        if initial_state[ind2] == 1:
+                            pt *= np.exp(1j*theta)
+                    else: #case where ind2 variable is not initialised - equivalent to RZ but on 2nd qubit only.
+                        val = np.exp(1j*theta)
+                        r = t-n
+                        block_size = 2**(t-ind2-1)
+                        repeat_period = 2**(t-ind2)
+                        for start in range(block_size, x_range, repeat_period):
+                            for k in range(block_size):
+                                pt[start + k] *= val
+
+          
+            else: # if both variables are uninitialised
+
+            #NOTE: For this case I am trying to see if I can directly figure out impacted indices instead of traversing over all of them. 
+                val = np.exp(1j*theta)
+                r = t-n
+                local_i = ind1 - n
+                local_j = ind2 - n
+                block_size = 2**(t - ind2 - 1)
+                repeat_period = 2**(t - ind1)
+                for k in range(x_range):
+                    bink = bin(k)[2:].zfill((t-n))
+                    if bink[local_i] == '1' and bink[local_j] == '1':
+                        pt[k] *= val
+                    
+    return pt
+
+def statevector_(ttb, pt, n, t, ovs, np, starting_index=0):
+    group_size = 2**(t-n) # == size of ttb
+    exp_vals = expfunc(ttb) # == exp(i pi/4 * f(x))
+    exp_vals = exp_vals*pt # == Multiply by exp(i theta) for any phase theta to be added
+
+    s = np.zeros(2**n,dtype=complex) 
+    for k in range(group_size):
+        chosenbits = "".join([(bin(k)[2:].zfill(t))[j] for j in ovs])
+        chosen_int = int(chosenbits,2)
+        s[chosen_int] += (exp_vals[k])
+
     stvector = s / (2**.5)**(t-n) #Normalization
     return stvector
-
-
