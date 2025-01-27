@@ -87,8 +87,8 @@ def statevector_(ttb, n, t, ovs, np, starting_index=0):
         chosenbits = "".join([ ( bin(k)[2:].zfill((t)) )[j] for j in ovs ]) #Choosing the variables which are corresponing to the output. 
         chosen_int = int(chosenbits,2) #Integer value corresponding to chosen variables.  
 
-        try: s_ldic[chosen_int][t_val]+=1 #If array has been created already, just update it
-        except KeyError: #If the chosen variables have not been chosen before, define a new element corresponding to that combo - and then update the array
+        #try: s_ldic[chosen_int][t_val]+=1 #If array has been created already, just update it
+        #except KeyError: #If the chosen variables have not been chosen before, define a new element corresponding to that combo - and then update the array
         try: s_ldic[chosen_int][t_val]+=1 #If array has been created already, just update it
         except KeyError: #If the chosen variables have not been chosen before, define a new element corresponding to that combo - and then update the array
             s_ldic[chosen_int] = np.array([0,0,0,0,0,0,0,0])
@@ -97,8 +97,8 @@ def statevector_(ttb, n, t, ovs, np, starting_index=0):
     for k in s_ldic:
         s_ldic[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) ) #Hardcoded the computation of FFT[1] of the array
         s[k] = s_ldic[k] 
-        s_ldic[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) ) #Hardcoded the computation of FFT[1] of the array
-        s[k] = s_ldic[k] 
+        #s_ldic[k] = (s_ldic[k][0] - s_ldic[k][4]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)- (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) + (1j)*((s_ldic[k][2] - s_ldic[k][6]) + (s_ldic[k][1] - s_ldic[k][5])/np.sqrt(2)+ (s_ldic[k][3] - s_ldic[k][7])/np.sqrt(2) ) #Hardcoded the computation of FFT[1] of the array
+        #s[k] = s_ldic[k] 
     stvector = s / (2**.5)**(t-n) #Normalization
     return stvector
 
