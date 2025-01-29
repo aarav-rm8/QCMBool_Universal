@@ -1,13 +1,3 @@
-## Defining some global variables
-global omega
-root_i = np.sqrt(1j)
-omega = [1,root_i,1j,1j*root_i,-1,-root_i,-1j,-1j*root_i]
-
-#A function to calculate n'th power of π/4 (where n is value from 0 to 7)
-def expfunc(arr):
-    b = np.array([omega[i] for i in arr])
-    return b
-
 ### Creating the Polynomial array of Circuit
 def create_poly(qc, n: int):
     instructions = [(instruction.operation.name,
@@ -140,19 +130,17 @@ def phasetable(phases, n, t, initial_state, ivs, np):
                                 pt[start + k] *= val
 
           
-            else: # if both variables are uninitialised
-
-            #NOTE: For this case I am trying to see if I can directly figure out impacted indices instead of traversing over all of them. 
+            else: # if both variables are uninitialised: we go through a nested loop so as to access only states where both i1 and i2 are 1. 
                 val = np.exp(1j*theta)
                 r = t-n
-                local_i = ind1 - n
-                local_j = ind2 - n
-                block_size = 2**(t - ind2 - 1)
-                repeat_period = 2**(t - ind1)
-                for k in range(x_range):
-                    bink = bin(k)[2:].zfill((t-n))
-                    if bink[local_i] == '1' and bink[local_j] == '1':
-                        pt[k] *= val
+                block_size_1 = 2**(t-ind1-1)
+                repeat_period_1 = 2**(t-ind1)
+                block_size_2 = 2**(t-ind2-1)
+                repeat_period_2 = 2**(t-ind2)
+                for start_1 in range(block_size_1, x_range, repeat_period_1):
+                    for start_2 in range(start_1 + block_size_2, repeat_period_1, repeat_period_2):
+                        for k in range(block_size_2):
+                            pt[start_2+k] *= val
                     
     return pt
 
