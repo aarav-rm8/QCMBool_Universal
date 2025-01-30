@@ -1,3 +1,13 @@
+## Defining some global variables
+global omega
+root_i = np.sqrt(1j)
+omega = [1,root_i,1j,1j*root_i,-1,-root_i,-1j,-1j*root_i]
+
+#A function to calculate n'th power of π/4 (where n is value from 0 to 7)
+def expfunc(arr):
+    b = np.array([omega[i] for i in arr])
+    return b
+
 ### Creating the Polynomial array of Circuit
 def create_poly(qc, n: int):
     instructions = [(instruction.operation.name,
